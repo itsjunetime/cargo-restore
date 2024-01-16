@@ -1,5 +1,5 @@
 use cargo::{
-	core::{compiler::CompileKind, resolver::CliFeatures, FeatureValue},
+	core::{compiler::CompileKind, resolver::CliFeatures, FeatureValue, Verbosity},
 	ops::{install, CompileFilter, CompileOptions, FilterRule, LibRule, Packages},
 	util::{command_prelude::CompileMode, interning::InternedString},
 };
@@ -11,8 +11,6 @@ mod config;
 mod crates;
 
 fn main() {
-	// todo)) add like tracing and stuff to make sure it looks pretty and only outputs the
-	// necessary info
 	let config = config::Config::parse();
 	let opts = config
 		.cmd
@@ -25,10 +23,67 @@ fn main() {
 	let listing = crates.listing.get();
 	let bin_dir = crates.root.clone().join("bin");
 
-	for (package, info) in listing.installs.iter() {
+	let install_check_conf = cargo::Config::default().expect("Couldn't create cargo Config");
+	let to_install = listing
+		.installs
+		.iter()
+		.filter(|(_, info)| {
+			if opts.force_all {
+				return true;
+			}
+
+			// this should be true if any of the bins don't exist so that cargo doesn't stop us
+			// when it sees that the pacakge is already installed according to the lockfile
+			info.bins.iter().any(|bin| {
+				bin_dir
+					.open_ro_shared(bin, &install_check_conf, "Checking if binary exists")
+					.map_or(true, |file| !file.path().exists())
+			})
+		})
+		.collect::<Vec<_>>();
+
+	let mut shell = install_check_conf.shell();
+	// ugh. who cares if we don't print
+	if to_install.is_empty() {
+		_ = shell.status(
+			"All already installed!",
+			"(run with -f to force re-installation of all)",
+		);
+		return;
+	} else {
+		_ = shell.status("Installing", format!("{} package(s)", to_install.len()));
+	};
+
+	let verbosity = if opts.verbose {
+		for (pkg, info) in to_install.iter() {
+			_ = shell.status(
+				"=>",
+				format!(
+					"{} v{} ({}), profile: {}, features: {:?}",
+					pkg.name(),
+					pkg.version(),
+					pkg.source_id(),
+					info.profile,
+					info.features
+				),
+			);
+		}
+		Verbosity::Verbose
+	} else {
+		Verbosity::Normal
+	};
+
+	// nice little newline
+	_ = shell.print_ansi_stdout(b"\n");
+
+	for (package, info) in to_install {
 		// We want to recreate this with every package because it seems that if you use it with
 		// multiple installs it can get messed up and affect later installs
+		// However, this kinda irks me. The whole "it's immutable so we can assume there will be no
+		// side effects" is a really nice thing about rust and it seems they're skirting it here
+		// for convenience, which like goes against some core principles of rust?
 		let cargo_config = cargo::Config::default().expect("Couldn't create cargo Config");
+		cargo_config.shell().set_verbosity(verbosity);
 
 		// todo)) sometimes the version can be like 0.1.0-master and the `master` is only contained
 		// in the `semver::Version`, but i don't know if we can translate that over to the
@@ -76,14 +131,6 @@ fn main() {
 			benches: FilterRule::Just(vec![]),
 		};
 
-		// force_build should be true if any of the bins don't exist so that cargo doesn't stop us
-		// when it sees that the pacakge is already installed according to the lockfile
-		let force_build = info.bins.iter().any(|bin| {
-			bin_dir
-				.open_ro_shared(bin, &cargo_config, "Checking if binary exists")
-				.map_or(true, |file| !file.path().exists())
-		});
-		// todo)) find a way to make this quieter
 		let res = install(
 			&cargo_config,
 			None,
@@ -91,7 +138,7 @@ fn main() {
 			package.source_id(),
 			false,
 			&compile_opts,
-			force_build,
+			true,
 			false,
 		);
 
