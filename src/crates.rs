@@ -58,12 +58,12 @@ fn resolve_root(flag: Option<&str>, config: &cargo::Config) -> CargoResult<Files
 		.unwrap_or_else(|| config.home().clone()))
 }
 
-pub fn load_info(config: &config::Config) -> CargoResult<CrateData> {
+pub fn load_info(opts: &config::SharedOptions) -> CargoResult<CrateData> {
 	let mut data = vec![];
 	let cargo_config = cargo::Config::default()?;
 	let root = resolve_root(None, &cargo_config)?;
 
-	match config.crates_file {
+	match opts.crates_file {
 		Some(ref cf) => data = std::fs::read(cf)?,
 		None => {
 			let lock = root.open_ro_shared(

@@ -14,8 +14,14 @@ fn main() {
 	// todo)) add like tracing and stuff to make sure it looks pretty and only outputs the
 	// necessary info
 	let config = config::Config::parse();
+	let opts = config
+		.cmd
+		.map(|cmd| match cmd {
+			config::RestoreCommand::Restore(opts) => opts,
+		})
+		.unwrap_or(config.opts);
 
-	let crates = crates::load_info(&config).expect("Couldn't load list of crates");
+	let crates = crates::load_info(&opts).expect("Couldn't load list of crates");
 	let listing = crates.listing.get();
 	let bin_dir = crates.root.clone().join("bin");
 
@@ -27,7 +33,7 @@ fn main() {
 		// todo)) sometimes the version can be like 0.1.0-master and the `master` is only contained
 		// in the `semver::Version`, but i don't know if we can translate that over to the
 		// `semver::VersionReq`. maybe it'll be fine.
-		let vers = (!config.install_latest).then(|| {
+		let vers = (!opts.install_latest).then(|| {
 			let pkg_vers = package.version();
 			VersionReq {
 				comparators: vec![Comparator {
@@ -40,15 +46,15 @@ fn main() {
 			}
 		});
 
-		let mut opts = CompileOptions::new(&cargo_config, CompileMode::Build)
+		let mut compile_opts = CompileOptions::new(&cargo_config, CompileMode::Build)
 			.expect("Couldn't create compile opts");
 
-		if config.fix_target {
-			opts.build_config.requested_kinds = vec![CompileKind::Host];
+		if opts.fix_target {
+			compile_opts.build_config.requested_kinds = vec![CompileKind::Host];
 		}
 
-		opts.build_config.requested_profile = InternedString::new(info.profile);
-		opts.cli_features = CliFeatures {
+		compile_opts.build_config.requested_profile = InternedString::new(info.profile);
+		compile_opts.cli_features = CliFeatures {
 			features: Rc::new(BTreeSet::from_iter(
 				info.features
 					.iter()
@@ -60,8 +66,8 @@ fn main() {
 
 		let packages = info.bins.iter().map(|s| s.to_string()).collect::<Vec<_>>();
 
-		opts.spec = Packages::Packages(packages);
-		opts.filter = CompileFilter::Only {
+		compile_opts.spec = Packages::Packages(packages);
+		compile_opts.filter = CompileFilter::Only {
 			all_targets: false,
 			lib: LibRule::Default,
 			bins: FilterRule::All,
@@ -77,7 +83,6 @@ fn main() {
 				.open_ro_shared(bin, &cargo_config, "Checking if binary exists")
 				.map_or(true, |file| !file.path().exists())
 		});
-
 		// todo)) find a way to make this quieter
 		let res = install(
 			&cargo_config,
@@ -85,7 +90,7 @@ fn main() {
 			vec![(package.name().as_str().into(), vers)],
 			package.source_id(),
 			false,
-			&opts,
+			&compile_opts,
 			force_build,
 			false,
 		);

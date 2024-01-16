@@ -1,9 +1,22 @@
-use clap::Parser;
+use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Config {
+	#[command(subcommand, name = "restore")]
+	pub cmd: Option<RestoreCommand>,
+	#[command(flatten)]
+	pub opts: SharedOptions,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum RestoreCommand {
+	Restore(SharedOptions),
+}
+
+#[derive(Args, Debug, Clone)]
+pub struct SharedOptions {
 	/// The file to parse as the .crates2.json if you don't want to use the default one
 	#[arg(short = 'c', long = "crate-file")]
 	pub crates_file: Option<PathBuf>,
