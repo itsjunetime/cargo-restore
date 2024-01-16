@@ -144,6 +144,9 @@ fn main() {
 
 		if let Err(e) = res {
 			eprintln!("Couldn't install {}: {e}", package.name());
+			if opts.quick_fail {
+				std::process::exit(1);
+			}
 		}
 	}
 }

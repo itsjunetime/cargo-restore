@@ -34,4 +34,8 @@ pub struct SharedOptions {
 	/// Whether to enable verbose output
 	#[arg(short = 'v', long = "verbose", default_value_t = false)]
 	pub verbose: bool,
+	/// If true, `cargo-restore` will exit with an error code as soon as any package fails to
+	/// install
+	#[arg(short, long, default_value_t = false)]
+	pub quick_fail: bool,
 }
