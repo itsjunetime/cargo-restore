@@ -2,7 +2,7 @@ use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, bin_name = "cargo")]
 pub struct Config {
 	#[command(subcommand, name = "restore")]
 	pub cmd: Option<RestoreCommand>,
