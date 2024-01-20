@@ -1,5 +1,9 @@
 use cargo::{
-	core::{compiler::{CompileKind, CompileTarget}, resolver::CliFeatures, FeatureValue, Verbosity},
+	core::{
+		compiler::{CompileKind, CompileTarget},
+		resolver::CliFeatures,
+		FeatureValue, Verbosity,
+	},
 	ops::{install, CompileFilter, CompileOptions, FilterRule, LibRule, Packages},
 	util::{command_prelude::CompileMode, interning::InternedString},
 };
@@ -79,98 +83,104 @@ fn main() {
 	// nice little newline
 	_ = shell.print_ansi_stdout(b"\n");
 
-	let (success, failures): (Vec<_>, Vec<_>) = to_install.into_iter().map(|(package, info)| {
-		// We want to recreate this with every package because it seems that if you use it with
-		// multiple installs it can get messed up and affect later installs
-		// However, this kinda irks me. The whole "it's immutable so we can assume there will be no
-		// side effects" is a really nice thing about rust and it seems they're skirting it here
-		// for convenience, which like goes against some core principles of rust?
-		let cargo_config = cargo::Config::default().expect("Couldn't create cargo Config");
-		cargo_config.shell().set_verbosity(verbosity);
+	let (success, failures): (Vec<_>, Vec<_>) = to_install
+		.into_iter()
+		.map(|(package, info)| {
+			// We want to recreate this with every package because it seems that if you use it with
+			// multiple installs it can get messed up and affect later installs
+			// However, this kinda irks me. The whole "it's immutable so we can assume there will be no
+			// side effects" is a really nice thing about rust and it seems they're skirting it here
+			// for convenience, which like goes against some core principles of rust?
+			let cargo_config = cargo::Config::default().expect("Couldn't create cargo Config");
+			cargo_config.shell().set_verbosity(verbosity);
 
-		// todo)) sometimes the version can be like 0.1.0-master and the `master` is only contained
-		// in the `semver::Version`, but i don't know if we can translate that over to the
-		// `semver::VersionReq`. maybe it'll be fine.
-		let vers = (!opts.install_latest).then(|| {
-			let pkg_vers = package.version();
-			VersionReq {
-				comparators: vec![Comparator {
-					op: semver::Op::Exact,
-					major: pkg_vers.major,
-					minor: Some(pkg_vers.minor),
-					patch: Some(pkg_vers.patch),
-					pre: pkg_vers.pre.clone(),
-				}],
-			}
-		});
+			// todo)) sometimes the version can be like 0.1.0-master and the `master` is only contained
+			// in the `semver::Version`, but i don't know if we can translate that over to the
+			// `semver::VersionReq`. maybe it'll be fine.
+			let vers = (!opts.install_latest).then(|| {
+				let pkg_vers = package.version();
+				VersionReq {
+					comparators: vec![Comparator {
+						op: semver::Op::Exact,
+						major: pkg_vers.major,
+						minor: Some(pkg_vers.minor),
+						patch: Some(pkg_vers.patch),
+						pre: pkg_vers.pre.clone(),
+					}],
+				}
+			});
 
-		let mut compile_opts = CompileOptions::new(&cargo_config, CompileMode::Build)
-			.expect("Couldn't create compile opts");
+			let mut compile_opts = CompileOptions::new(&cargo_config, CompileMode::Build)
+				.expect("Couldn't create compile opts");
 
-		if opts.fix_target {
-			compile_opts.build_config.requested_kinds = vec![CompileKind::Host];
-		} else if let Some(target) = info.target.map(CompileTarget::new) {
-			match target {
-				Ok(t) => compile_opts.build_config.requested_kinds = vec![CompileKind::Target(t)],
-				Err(e) => {
-					return (
-						package,
-						Err(anyhow::anyhow!(
-							"target specified for {} ({}) is not valid on this machine: {e}",
-							package.name(),
-							info.target.unwrap_or("None")
-						))
-					);
+			if opts.fix_target {
+				compile_opts.build_config.requested_kinds = vec![CompileKind::Host];
+			} else if let Some(target) = info.target.map(CompileTarget::new) {
+				match target {
+					Ok(t) => {
+						compile_opts.build_config.requested_kinds = vec![CompileKind::Target(t)]
+					}
+					Err(e) => {
+						return (
+							package,
+							Err(anyhow::anyhow!(
+								"target specified for {} ({}) is not valid on this machine: {e}",
+								package.name(),
+								info.target.unwrap_or("None")
+							)),
+						);
+					}
 				}
 			}
-		}
 
-		compile_opts.build_config.force_rebuild = true;
-		compile_opts.build_config.requested_profile = InternedString::new(info.profile);
-		compile_opts.cli_features = CliFeatures {
-			features: Rc::new(BTreeSet::from_iter(
-				info.features
-					.iter()
-					.map(|feat| FeatureValue::Feature(InternedString::new(feat))),
-			)),
-			all_features: info.all_features,
-			uses_default_features: !info.no_default_features,
-		};
+			compile_opts.build_config.force_rebuild = true;
+			compile_opts.build_config.requested_profile = InternedString::new(info.profile);
+			compile_opts.cli_features = CliFeatures {
+				features: Rc::new(BTreeSet::from_iter(
+					info.features
+						.iter()
+						.map(|feat| FeatureValue::Feature(InternedString::new(feat))),
+				)),
+				all_features: info.all_features,
+				uses_default_features: !info.no_default_features,
+			};
 
-		let packages = info.bins.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+			let packages = info.bins.iter().map(|s| s.to_string()).collect::<Vec<_>>();
 
-		compile_opts.spec = Packages::Packages(packages);
-		compile_opts.filter = CompileFilter::Only {
-			all_targets: false,
-			lib: LibRule::Default,
-			bins: FilterRule::All,
-			examples: FilterRule::Just(vec![]),
-			tests: FilterRule::Just(vec![]),
-			benches: FilterRule::Just(vec![]),
-		};
+			compile_opts.spec = Packages::Packages(packages);
+			compile_opts.filter = CompileFilter::Only {
+				all_targets: false,
+				lib: LibRule::Default,
+				bins: FilterRule::All,
+				examples: FilterRule::Just(vec![]),
+				tests: FilterRule::Just(vec![]),
+				benches: FilterRule::Just(vec![]),
+			};
 
-		let res = install(
-			&cargo_config,
-			None,
-			vec![(package.name().as_str().into(), vers)],
-			package.source_id(),
-			false,
-			&compile_opts,
-			true,
-			false,
-		);
+			let res = install(
+				&cargo_config,
+				None,
+				vec![(package.name().as_str().into(), vers)],
+				package.source_id(),
+				false,
+				&compile_opts,
+				true,
+				false,
+			);
 
-		if let Err(ref e) = res {
-			eprintln!("Couldn't install {}: {e}", package.name());
-			if opts.quick_fail {
-				std::process::exit(1);
+			if let Err(ref e) = res {
+				eprintln!("Couldn't install {}: {e}", package.name());
+				if opts.quick_fail {
+					std::process::exit(1);
+				}
 			}
-		}
 
-		(package, res)
-	}).partition(|(_, r)| r.is_ok());
+			(package, res)
+		})
+		.partition(|(_, r)| r.is_ok());
 
-	let success_list = success.into_iter()
+	let success_list = success
+		.into_iter()
 		.map(|(p, _)| p.name())
 		.collect::<Vec<_>>()
 		.join(", ");
@@ -182,12 +192,18 @@ fn main() {
 		_ = shell.status("Successes", success_str);
 		_ = shell.status("Failures", failures.len());
 		for (package, err) in failures {
-			_ = shell.status("=>", format!("{}: {}", package.name(), match err {
-				Err(e) => e,
-				// We should've already checked that they're all errors
-				_ => unreachable!()
-			}));
+			_ = shell.status(
+				"=>",
+				format!(
+					"{}: {}",
+					package.name(),
+					match err {
+						Err(e) => e,
+						// We should've already checked that they're all errors
+						_ => unreachable!(),
+					}
+				),
+			);
 		}
 	}
-
 }
