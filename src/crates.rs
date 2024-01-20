@@ -11,7 +11,6 @@ use std::{
 use yoke::{Yoke, Yokeable};
 
 // stolen from https://doc.rust-lang.org/1.69.0/nightly-rustc/cargo/ops/common_for_install_and_uninstall
-
 #[derive(Debug)]
 pub struct CrateData {
 	pub root: Filesystem,
