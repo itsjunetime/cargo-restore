@@ -1,3 +1,4 @@
+use anstyle::{AnsiColor, Color, Style};
 use cargo::{
 	core::{
 		compiler::{CompileKind, CompileTarget},
@@ -189,10 +190,13 @@ fn main() {
 	if failures.is_empty() {
 		_ = shell.status("All Succeeded!", success_str);
 	} else {
-		_ = shell.status("Successes", success_str);
-		_ = shell.status("Failures", failures.len());
+		if !success_str.is_empty() {
+			_ = shell.status("Successes", success_str);
+		}
+
+		_ = shell.error(format!("{} failures", failures.len()));
 		for (package, err) in failures {
-			_ = shell.status(
+			_ = shell.status_with_color(
 				"=>",
 				format!(
 					"{}: {}",
@@ -203,6 +207,7 @@ fn main() {
 						_ => unreachable!(),
 					}
 				),
+				&Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))),
 			);
 		}
 	}
