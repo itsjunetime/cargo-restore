@@ -47,11 +47,9 @@ pub struct InstallInfo<'info> {
 }
 
 // Stolen from cargo::ops::common_for_install_and_uninstall
-fn resolve_root(flag: Option<&str>, config: &cargo::Config) -> CargoResult<Filesystem> {
+fn resolve_root(config: &cargo::Config) -> CargoResult<Filesystem> {
 	let config_root = config.get_path("install.root")?;
-	Ok(flag
-		.map(PathBuf::from)
-		.or_else(|| config.get_env_os("CARGO_INSTALL_ROOT").map(PathBuf::from))
+	Ok(config.get_env_os("CARGO_INSTALL_ROOT").map(PathBuf::from)
 		.or_else(move || config_root.map(|v| v.val))
 		.map(Filesystem::new)
 		.unwrap_or_else(|| config.home().clone()))
@@ -60,7 +58,7 @@ fn resolve_root(flag: Option<&str>, config: &cargo::Config) -> CargoResult<Files
 pub fn load_info(opts: &config::SharedOptions) -> CargoResult<CrateData> {
 	let mut data = vec![];
 	let cargo_config = cargo::Config::default()?;
-	let root = resolve_root(None, &cargo_config)?;
+	let root = resolve_root(&cargo_config)?;
 
 	match opts.crates_file {
 		Some(ref cf) => data = std::fs::read(cf)?,
