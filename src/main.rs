@@ -95,9 +95,6 @@ fn main() {
 			let cargo_config = cargo::Config::default().expect("Couldn't create cargo Config");
 			cargo_config.shell().set_verbosity(verbosity);
 
-			// todo)) sometimes the version can be like 0.1.0-master and the `master` is only contained
-			// in the `semver::Version`, but i don't know if we can translate that over to the
-			// `semver::VersionReq`. maybe it'll be fine.
 			let vers = (!opts.install_latest).then(|| {
 				let pkg_vers = package.version();
 				VersionReq {
