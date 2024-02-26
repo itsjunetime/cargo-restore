@@ -1,5 +1,6 @@
-use clap::{Args, Parser, Subcommand};
 use std::path::PathBuf;
+
+use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None, bin_name = "cargo")]
@@ -7,12 +8,12 @@ pub struct Config {
 	#[command(subcommand, name = "restore")]
 	pub cmd: Option<RestoreCommand>,
 	#[command(flatten)]
-	pub opts: SharedOptions,
+	pub opts: SharedOptions
 }
 
 #[derive(Subcommand, Debug)]
 pub enum RestoreCommand {
-	Restore(SharedOptions),
+	Restore(SharedOptions)
 }
 
 #[derive(Args, Debug, Clone)]
@@ -37,5 +38,5 @@ pub struct SharedOptions {
 	/// If true, `cargo-restore` will exit with an error code as soon as any package fails to
 	/// install
 	#[arg(short, long, default_value_t = false)]
-	pub quick_fail: bool,
+	pub quick_fail: bool
 }

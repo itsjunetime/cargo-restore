@@ -1,20 +1,22 @@
-use crate::config;
-use cargo::{core::package_id::PackageId, util::Filesystem, CargoResult};
-use serde::Deserialize;
-use serde_json::Value;
 use std::{
 	borrow::Cow,
 	collections::{BTreeMap, BTreeSet},
 	io::Read,
-	path::PathBuf,
+	path::PathBuf
 };
+
+use cargo::{core::package_id::PackageId, util::Filesystem, CargoResult};
+use serde::Deserialize;
+use serde_json::Value;
 use yoke::{Yoke, Yokeable};
+
+use crate::config;
 
 // stolen from https://doc.rust-lang.org/1.69.0/nightly-rustc/cargo/ops/common_for_install_and_uninstall
 #[derive(Debug)]
 pub struct CrateData {
 	pub root: Filesystem,
-	pub listing: Yoke<CrateListingV2<'static>, Vec<u8>>,
+	pub listing: Yoke<CrateListingV2<'static>, Vec<u8>>
 }
 
 #[derive(Deserialize, Yokeable, Debug)]
@@ -22,7 +24,7 @@ pub struct CrateListingV2<'info> {
 	#[serde(borrow)]
 	pub installs: BTreeMap<PackageId, InstallInfo<'info>>,
 	#[serde(flatten)]
-	_other: BTreeMap<String, Value>,
+	_other: BTreeMap<String, Value>
 }
 
 #[derive(Deserialize, Debug)]
@@ -43,7 +45,7 @@ pub struct InstallInfo<'info> {
 	// This can include a newline, so it needs to be a Cow instead of a normal str
 	pub rustc: Option<Cow<'info, str>>,
 	#[serde(borrow)]
-	pub other: Option<BTreeMap<&'info str, Value>>,
+	pub other: Option<BTreeMap<&'info str, Value>>
 }
 
 // Stolen from cargo::ops::common_for_install_and_uninstall
@@ -68,7 +70,7 @@ pub fn load_info(opts: &config::SharedOptions) -> CargoResult<CrateData> {
 			let lock = root.open_ro_shared(
 				".crates2.json",
 				&cargo_config,
-				"Reading list of installed crates",
+				"Reading list of installed crates"
 			)?;
 			lock.file().read_to_end(&mut data)?;
 		}

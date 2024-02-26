@@ -1,16 +1,17 @@
+use std::{collections::BTreeSet, rc::Rc};
+
 use anstyle::{AnsiColor, Color, Style};
 use cargo::{
 	core::{
 		compiler::{CompileKind, CompileTarget},
 		resolver::CliFeatures,
-		FeatureValue, Verbosity,
+		FeatureValue, Verbosity
 	},
 	ops::{install, CompileFilter, CompileOptions, FilterRule, LibRule, Packages},
-	util::{command_prelude::CompileMode, interning::InternedString},
+	util::{command_prelude::CompileMode, interning::InternedString}
 };
 use clap::Parser;
 use semver::{Comparator, VersionReq};
-use std::{collections::BTreeSet, rc::Rc};
 
 mod config;
 mod crates;
@@ -20,7 +21,7 @@ fn main() {
 	let opts = config
 		.cmd
 		.map(|cmd| match cmd {
-			config::RestoreCommand::Restore(opts) => opts,
+			config::RestoreCommand::Restore(opts) => opts
 		})
 		.unwrap_or(config.opts);
 
@@ -52,7 +53,7 @@ fn main() {
 	if to_install.is_empty() {
 		_ = shell.status(
 			"All already installed!",
-			"(run with -f to force re-installation of all)",
+			"(run with -f to force re-installation of all)"
 		);
 		return;
 	} else {
@@ -70,7 +71,7 @@ fn main() {
 					pkg.source_id(),
 					info.profile,
 					info.features
-				),
+				)
 			);
 		}
 		Verbosity::Verbose
@@ -100,8 +101,8 @@ fn main() {
 						major: pkg_vers.major,
 						minor: Some(pkg_vers.minor),
 						patch: Some(pkg_vers.patch),
-						pre: pkg_vers.pre.clone(),
-					}],
+						pre: pkg_vers.pre.clone()
+					}]
 				}
 			});
 
@@ -112,9 +113,8 @@ fn main() {
 				compile_opts.build_config.requested_kinds = vec![CompileKind::Host];
 			} else if let Some(target) = info.target.map(CompileTarget::new) {
 				match target {
-					Ok(t) => {
-						compile_opts.build_config.requested_kinds = vec![CompileKind::Target(t)]
-					}
+					Ok(t) =>
+						compile_opts.build_config.requested_kinds = vec![CompileKind::Target(t)],
 					Err(e) => {
 						return (
 							package,
@@ -122,7 +122,7 @@ fn main() {
 								"target specified for {} ({}) is not valid on this machine: {e}",
 								package.name(),
 								info.target.unwrap_or("None")
-							)),
+							))
 						);
 					}
 				}
@@ -134,10 +134,10 @@ fn main() {
 				features: Rc::new(BTreeSet::from_iter(
 					info.features
 						.iter()
-						.map(|feat| FeatureValue::Feature(InternedString::new(feat))),
+						.map(|feat| FeatureValue::Feature(InternedString::new(feat)))
 				)),
 				all_features: info.all_features,
-				uses_default_features: !info.no_default_features,
+				uses_default_features: !info.no_default_features
 			};
 
 			let packages = info.bins.iter().map(|s| s.to_string()).collect::<Vec<_>>();
@@ -149,7 +149,7 @@ fn main() {
 				bins: FilterRule::All,
 				examples: FilterRule::Just(vec![]),
 				tests: FilterRule::Just(vec![]),
-				benches: FilterRule::Just(vec![]),
+				benches: FilterRule::Just(vec![])
 			};
 
 			let res = install(
@@ -160,7 +160,7 @@ fn main() {
 				false,
 				&compile_opts,
 				true,
-				false,
+				false
 			);
 
 			if let Err(ref e) = res {
@@ -192,16 +192,12 @@ fn main() {
 		for (package, err) in failures {
 			_ = shell.status_with_color(
 				"=>",
-				format!(
-					"{}: {}",
-					package.name(),
-					match err {
-						Err(e) => e,
-						// We should've already checked that they're all errors
-						_ => unreachable!(),
-					}
-				),
-				&Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red))),
+				format!("{}: {}", package.name(), match err {
+					Err(e) => e,
+					// We should've already checked that they're all errors
+					_ => unreachable!()
+				}),
+				&Style::new().fg_color(Some(Color::Ansi(AnsiColor::Red)))
 			);
 		}
 	}
