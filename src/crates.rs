@@ -49,7 +49,9 @@ pub struct InstallInfo<'info> {
 // Stolen from cargo::ops::common_for_install_and_uninstall
 fn resolve_root(config: &cargo::Config) -> CargoResult<Filesystem> {
 	let config_root = config.get_path("install.root")?;
-	Ok(config.get_env_os("CARGO_INSTALL_ROOT").map(PathBuf::from)
+	Ok(config
+		.get_env_os("CARGO_INSTALL_ROOT")
+		.map(PathBuf::from)
 		.or_else(move || config_root.map(|v| v.val))
 		.map(Filesystem::new)
 		.unwrap_or_else(|| config.home().clone()))

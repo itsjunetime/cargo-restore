@@ -16,9 +16,6 @@ mod config;
 mod crates;
 
 fn main() {
-	// maybe fix some compilation issues
-	std::env::set_var("CARGO_CACHE_RUSTC_INFO", "1");
-
 	let config = config::Config::parse();
 	let opts = config
 		.cmd
