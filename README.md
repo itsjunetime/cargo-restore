@@ -8,7 +8,7 @@ A cargo subcommand to automatically install all packages listed in a `.crates2.j
 Usage: cargo-restore [OPTIONS] [COMMAND]
 
 Commands:
-  restore  
+  restore
   help     Print this message or the help of the given subcommand(s)
 
 Options:
@@ -27,6 +27,11 @@ Options:
 ```
 
 When invoked without arguments, `cargo-restore` will automatically read all packages from `~/.cargo/.crates2.json` (or wherever else your cargo config defines to be root) and attempt to install them all. If any fail to install, it will print an error message and continue with the next on the list.
+
+## Installation
+```bash
+cargo install --git https://github.com/itsjunetime/cargo-restore.git
+```
 
 ## Caveats
 This is designed to be used with another dotfile-managing system, such as yadm, so that you could simply run `cargo install cargo-restore && cargo restore` to install all packages you want from cargo on your system. This requires reading from `~/.cargo/.crates2.json` by default, but that can lead to some confusion due to the fact that `cargo-restore` will, as a side-effect of using cargo to invoke installs, overwrite this file after each install.
