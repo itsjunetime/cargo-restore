@@ -29,7 +29,8 @@ fn main() {
 	let listing = crates.listing.get();
 	let bin_dir = crates.root.clone().join("bin");
 
-	let install_check_conf = cargo::Config::default().expect("Couldn't create cargo Config");
+	let install_check_conf = cargo::GlobalContext::default()
+		.expect("Couldn't create cargo Config");
 	let to_install = listing
 		.installs
 		.iter()
@@ -90,7 +91,8 @@ fn main() {
 			// However, this kinda irks me. The whole "it's immutable so we can assume there will be no
 			// side effects" is a really nice thing about rust and it seems they're skirting it here
 			// for convenience, which like goes against some core principles of rust?
-			let cargo_config = cargo::Config::default().expect("Couldn't create cargo Config");
+			let cargo_config = cargo::GlobalContext::default()
+				.expect("Couldn't create cargo Config");
 			cargo_config.shell().set_verbosity(verbosity);
 
 			let vers = (!opts.install_latest).then(|| {

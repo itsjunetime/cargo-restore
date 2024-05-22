@@ -49,7 +49,7 @@ pub struct InstallInfo<'info> {
 }
 
 // Stolen from cargo::ops::common_for_install_and_uninstall
-fn resolve_root(config: &cargo::Config) -> CargoResult<Filesystem> {
+fn resolve_root(config: &cargo::GlobalContext) -> CargoResult<Filesystem> {
 	let config_root = config.get_path("install.root")?;
 	Ok(config
 		.get_env_os("CARGO_INSTALL_ROOT")
@@ -61,7 +61,7 @@ fn resolve_root(config: &cargo::Config) -> CargoResult<Filesystem> {
 
 pub fn load_info(opts: &config::SharedOptions) -> CargoResult<CrateData> {
 	let mut data = vec![];
-	let cargo_config = cargo::Config::default()?;
+	let cargo_config = cargo::GlobalContext::default()?;
 	let root = resolve_root(&cargo_config)?;
 
 	match opts.crates_file {
