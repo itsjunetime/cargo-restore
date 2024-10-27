@@ -1,5 +1,4 @@
 use std::{
-	borrow::Cow,
 	collections::{BTreeMap, BTreeSet},
 	io::Read,
 	path::PathBuf
@@ -7,7 +6,6 @@ use std::{
 
 use cargo::{core::package_id::PackageId, util::Filesystem, CargoResult};
 use serde::Deserialize;
-use serde_json::Value;
 use yoke::{Yoke, Yokeable};
 
 use crate::config;
@@ -22,15 +20,12 @@ pub struct CrateData {
 #[derive(Deserialize, Yokeable, Debug)]
 pub struct CrateListingV2<'info> {
 	#[serde(borrow)]
-	pub installs: BTreeMap<PackageId, InstallInfo<'info>>,
-	#[serde(flatten)]
-	_other: BTreeMap<String, Value>
+	pub installs: BTreeMap<PackageId, InstallInfo<'info>>
 }
 
+// This has more fields but we don't use them so we can ignore them
 #[derive(Deserialize, Debug)]
 pub struct InstallInfo<'info> {
-	#[serde(borrow)]
-	pub version_req: Option<&'info str>,
 	#[serde(borrow)]
 	pub bins: BTreeSet<&'info str>,
 	#[serde(borrow)]
@@ -40,12 +35,7 @@ pub struct InstallInfo<'info> {
 	#[serde(borrow)]
 	pub profile: &'info str,
 	#[serde(borrow)]
-	pub target: Option<&'info str>,
-	#[serde(borrow)]
-	// This can include a newline, so it needs to be a Cow instead of a normal str
-	pub rustc: Option<Cow<'info, str>>,
-	#[serde(borrow)]
-	pub other: Option<BTreeMap<&'info str, Value>>
+	pub target: Option<&'info str>
 }
 
 // Stolen from cargo::ops::common_for_install_and_uninstall
