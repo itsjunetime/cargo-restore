@@ -1,4 +1,4 @@
-use std::{collections::BTreeSet, rc::Rc};
+use std::rc::Rc;
 
 use anstyle::{AnsiColor, Color, Style};
 use cargo::{
@@ -56,12 +56,12 @@ fn main() {
 			"(run with -f to force re-installation of all)"
 		);
 		return;
-	} else {
-		_ = shell.status("Installing", format!("{} package(s)", to_install.len()));
-	};
+	}
+
+	_ = shell.status("Installing", format!("{} package(s)", to_install.len()));
 
 	let verbosity = if opts.verbose {
-		for (pkg, info) in to_install.iter() {
+		for (pkg, info) in &to_install {
 			_ = shell.status(
 				"=>",
 				format!(
@@ -132,16 +132,21 @@ fn main() {
 			compile_opts.build_config.force_rebuild = true;
 			compile_opts.build_config.requested_profile = InternedString::new(info.profile);
 			compile_opts.cli_features = CliFeatures {
-				features: Rc::new(BTreeSet::from_iter(
+				features: Rc::new(
 					info.features
 						.iter()
 						.map(|feat| FeatureValue::Feature(InternedString::new(feat)))
-				)),
+						.collect()
+				),
 				all_features: info.all_features,
 				uses_default_features: !info.no_default_features
 			};
 
-			let packages = info.bins.iter().map(|s| s.to_string()).collect::<Vec<_>>();
+			let packages = info
+				.bins
+				.iter()
+				.map(|s| (*s).to_string())
+				.collect::<Vec<_>>();
 
 			compile_opts.spec = Packages::Packages(packages);
 			compile_opts.filter = CompileFilter::Only {
@@ -161,7 +166,9 @@ fn main() {
 				false,
 				&compile_opts,
 				true,
-				false
+				false,
+				false,
+				None
 			);
 
 			if let Err(ref e) = res {

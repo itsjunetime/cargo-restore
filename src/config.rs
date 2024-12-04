@@ -16,6 +16,7 @@ pub enum RestoreCommand {
 	Restore(SharedOptions)
 }
 
+#[expect(clippy::struct_excessive_bools)]
 #[derive(Args, Debug, Clone)]
 pub struct SharedOptions {
 	/// The file to parse as the .crates2.json if you don't want to use the default one
